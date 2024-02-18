@@ -11,7 +11,40 @@ import re
 import shutil
 import torch
 from pathlib import Path
-from esm.constants import proteinseq_toks
+# from esm.constants import proteinseq_toks, vcfseq_toks
+
+proteinseq_toks = {
+    "toks": [
+        "L",
+        "A",
+        "G",
+        "V",
+        "S",
+        "E",
+        "R",
+        "T",
+        "I",
+        "D",
+        "P",
+        "K",
+        "Q",
+        "N",
+        "F",
+        "Y",
+        "M",
+        "H",
+        "W",
+        "C",
+        "X",
+        "B",
+        "U",
+        "Z",
+        "O",
+        ".",
+        "-",
+    ]
+}
+vcfseq_toks = {"toks": ["0", "1", ".", "-"]}
 
 RawMSA = Sequence[Tuple[str, str]]
 
@@ -105,8 +138,8 @@ class Alphabet(object):
         self.append_eos = append_eos
         self.use_msa = use_msa
 
-        self.all_toks = list(self.prepend_toks)
-        self.all_toks.extend(self.standard_toks)
+        self.all_toks = list(self.standard_toks)
+        self.all_toks.extend(self.prepend_toks)
         for i in range((8 - (len(self.all_toks) % 8)) % 8):
             self.all_toks.append(f"<null_{i  + 1}>")
         self.all_toks.extend(self.append_toks)
@@ -118,7 +151,7 @@ class Alphabet(object):
         self.cls_idx = self.get_idx("<cls>")
         self.mask_idx = self.get_idx("<mask>")
         self.eos_idx = self.get_idx("<eos>")
-        self.all_special_tokens = ['<eos>', '<unk>', '<pad>', '<cls>', '<mask>']
+        self.all_special_tokens = ["<eos>", "<unk>", "<pad>", "<cls>", "<mask>"]
         self.unique_no_split_tokens = self.all_toks
 
     def __len__(self):
@@ -162,6 +195,13 @@ class Alphabet(object):
             prepend_bos = True
             append_eos = False
             use_msa = True
+        elif name in ("imputation", "imputation_transformer", "imputation_msa"):
+            standard_toks = vcfseq_toks["toks"]
+            prepend_toks = ("<cls>", "<pad>", "<eos>", "<unk>")
+            append_toks = ("<mask>",)
+            prepend_bos = True
+            append_eos = False
+            use_msa = True
         elif "invariant_gvp" in name.lower():
             standard_toks = proteinseq_toks["toks"]
             prepend_toks = ("<null_0>", "<pad>", "<eos>", "<unk>")
@@ -171,7 +211,9 @@ class Alphabet(object):
             use_msa = False
         else:
             raise ValueError("Unknown architecture selected")
-        return cls(standard_toks, prepend_toks, append_toks, prepend_bos, append_eos, use_msa)
+        return cls(
+            standard_toks, prepend_toks, append_toks, prepend_bos, append_eos, use_msa
+        )
 
     def _tokenize(self, text) -> str:
         return text.split()
@@ -265,12 +307,16 @@ class BatchConverter(object):
         batch_labels, seq_str_list = zip(*raw_batch)
         seq_encoded_list = [self.alphabet.encode(seq_str) for seq_str in seq_str_list]
         if self.truncation_seq_length:
-            seq_encoded_list = [seq_str[:self.truncation_seq_length] for seq_str in seq_encoded_list]
+            seq_encoded_list = [
+                seq_str[: self.truncation_seq_length] for seq_str in seq_encoded_list
+            ]
         max_len = max(len(seq_encoded) for seq_encoded in seq_encoded_list)
         tokens = torch.empty(
             (
                 batch_size,
-                max_len + int(self.alphabet.prepend_bos) + int(self.alphabet.append_eos),
+                max_len
+                + int(self.alphabet.prepend_bos)
+                + int(self.alphabet.append_eos),
             ),
             dtype=torch.int64,
         )
@@ -292,7 +338,9 @@ class BatchConverter(object):
                 + int(self.alphabet.prepend_bos),
             ] = seq
             if self.alphabet.append_eos:
-                tokens[i, len(seq_encoded) + int(self.alphabet.prepend_bos)] = self.alphabet.eos_idx
+                tokens[
+                    i, len(seq_encoded) + int(self.alphabet.prepend_bos)
+                ] = self.alphabet.eos_idx
 
         return labels, strs, tokens
 
@@ -313,7 +361,9 @@ class MSABatchConverter(BatchConverter):
             (
                 batch_size,
                 max_alignments,
-                max_seqlen + int(self.alphabet.prepend_bos) + int(self.alphabet.append_eos),
+                max_seqlen
+                + int(self.alphabet.prepend_bos)
+                + int(self.alphabet.append_eos),
             ),
             dtype=torch.int64,
         )
@@ -459,14 +509,13 @@ class ESMStructuralSplitDataset(torch.utils.data.Dataset):
         return len(self.names)
 
     def _check_exists(self) -> bool:
-        for (_, _, filename, _) in self.file_list:
+        for _, _, filename, _ in self.file_list:
             fpath = os.path.join(self.base_path, filename)
             if not os.path.exists(fpath) or not os.path.isdir(fpath):
                 return False
         return True
 
     def download(self):
-
         if self._check_exists():
             print("Files already downloaded and verified")
             return
@@ -475,7 +524,9 @@ class ESMStructuralSplitDataset(torch.utils.data.Dataset):
 
         for url, tar_filename, filename, md5_hash in self.file_list:
             download_path = os.path.join(self.base_path, tar_filename)
-            download_url(url=url, root=self.base_path, filename=tar_filename, md5=md5_hash)
+            download_url(
+                url=url, root=self.base_path, filename=tar_filename, md5=md5_hash
+            )
             shutil.unpack_archive(download_path, self.base_path)
 
     def __getitem__(self, idx):

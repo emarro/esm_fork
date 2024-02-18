@@ -17,7 +17,6 @@ from ..modules import (
 from ..axial_attention import RowSelfAttention, ColumnSelfAttention
 
 
-
 class MSATransformer(nn.Module):
     @classmethod
     def add_args(cls, parser):
@@ -99,7 +98,9 @@ class MSATransformer(nn.Module):
             self.alphabet_size, self.args.embed_dim, padding_idx=self.padding_idx
         )
 
-        if getattr(self.args, "embed_positions_msa", False):
+        if getattr(
+            self.args, "embed_positions_msa", False
+        ):  # embed each Haplotype as well
             emb_dim = getattr(self.args, "embed_positions_msa_dim", self.args.embed_dim)
             self.msa_position_embedding = nn.Parameter(
                 0.01 * torch.randn(1, 1024, 1, emb_dim),
@@ -143,18 +144,25 @@ class MSATransformer(nn.Module):
             weight=self.embed_tokens.weight,
         )
 
-    def forward(self, tokens, repr_layers=[], need_head_weights=False, return_contacts=False):
+    def forward(
+        self, tokens, repr_layers=[], need_head_weights=False, return_contacts=False
+    ):
+        """
+        tokens: stringt tensor of shape [batch, Num_sequences, Num_variants]
+        """
         if return_contacts:
             need_head_weights = True
 
         assert tokens.ndim == 3
         batch_size, num_alignments, seqlen = tokens.size()
-        padding_mask = tokens.eq(self.padding_idx)  # B, R, C
+        padding_mask = tokens.eq(self.padding_idx)  # B, H, Num_variants
         if not padding_mask.any():
             padding_mask = None
 
         x = self.embed_tokens(tokens)
-        x += self.embed_positions(tokens.view(batch_size * num_alignments, seqlen)).view(x.size())
+        x += self.embed_positions(
+            tokens.view(batch_size * num_alignments, seqlen)
+        ).view(x.size())
         if self.msa_position_embedding is not None:
             if x.size(1) > 1024:
                 raise RuntimeError(
@@ -179,7 +187,7 @@ class MSATransformer(nn.Module):
             row_attn_weights = []
             col_attn_weights = []
 
-        # B x R x C x D -> R x C x B x D
+        # B x H x V x D -> H x V x B x D
         x = x.permute(1, 2, 0, 3)
 
         for layer_idx, layer in enumerate(self.layers):
