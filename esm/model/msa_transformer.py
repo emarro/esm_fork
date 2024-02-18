@@ -9,6 +9,7 @@ import torch.nn as nn
 from ..modules import (
     AxialTransformerLayer,
     LearnedPositionalEmbedding,
+    SinusoidalPositionalEmbedding,
     RobertaLMHead,
     ESM1bLayerNorm,
     ContactPredictionHead,
@@ -136,6 +137,10 @@ class MSATransformer(nn.Module):
             self.args.embed_dim,
             self.padding_idx,
         )
+        #self.embed_positions = SinusoidalPositionalEmbedding(
+        #        self.args.embed_dim,
+        #        self.padding_idx
+        #        )
         self.emb_layer_norm_before = ESM1bLayerNorm(self.args.embed_dim)
         self.emb_layer_norm_after = ESM1bLayerNorm(self.args.embed_dim)
         self.lm_head = RobertaLMHead(
@@ -165,8 +170,9 @@ class MSATransformer(nn.Module):
             padding_mask = None
 
         x = self.embed_tokens(tokens)
+        positions = positions.unsqueeze(dim=1)
         x += self.embed_positions(
-            tokens.view(batch_size * num_alignments, seqlen), positions
+            tokens.view(batch_size * num_alignments, seqlen), positions.expand(batch_size, num_alignments, seqlen).reshape(batch_size * num_alignments, seqlen)
         ).view(x.size())
         if self.msa_position_embedding is not None:
             if x.size(1) > 1024:

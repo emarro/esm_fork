@@ -255,10 +255,13 @@ class LearnedPositionalEmbedding(nn.Embedding):
         positions = (
             torch.cumsum(mask, dim=1).type_as(mask) * mask
         ).long() + self.padding_idx
-        print(f"Old pos {positions}")
-        mask = input.eq(self.padding_idx).int()
-        positions = (pos * mask).type_as(mask).long() + self.padding_idx
-        print(f"New pos {positions}")
+        #print(f"Old pos {positions}")
+        #print(positions.shape)
+        mask = input.ne(self.padding_idx).int()
+        #print(f"Reshaped pos {pos}")
+        #print(f"Mask {mask}")
+        #positions = (pos * mask).type_as(mask).long() + self.padding_idx
+        #print(f"New pos {positions}")
 
         return F.embedding(
             positions,
@@ -279,25 +282,28 @@ class SinusoidalPositionalEmbedding(nn.Module):
         self.register_buffer("_float_tensor", torch.FloatTensor(1))
         self.weights = None
 
-    def forward(self, x):
+    def forward(self, x, pos):
         bsz, seq_len = x.shape
-        max_pos = self.padding_idx + 1 + seq_len
+        #max_pos = self.padding_idx + 1 + seq_len
+        max_pos = int(pos.max().item())
+        print(max_pos)
         if self.weights is None or max_pos > self.weights.size(0):
             self.weights = self.get_embedding(max_pos)
         self.weights = self.weights.type_as(self._float_tensor)
 
-        positions = self.make_positions(x)
+        positions = self.make_positions(x, pos)
         return (
             self.weights.index_select(0, positions.view(-1))
             .view(bsz, seq_len, -1)
             .detach()
         )
 
-    def make_positions(self, x):
+    def make_positions(self, x, pos):
         mask = x.ne(self.padding_idx)
         range_buf = (
             torch.arange(x.size(1), device=x.device).expand_as(x) + self.padding_idx + 1
         )
+        range_buf = pos + self.padding_idx + 1
         positions = range_buf.expand_as(x)
         return positions * mask.long() + self.padding_idx * (1 - mask.long())
 
