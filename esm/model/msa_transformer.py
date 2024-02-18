@@ -145,7 +145,12 @@ class MSATransformer(nn.Module):
         )
 
     def forward(
-        self, tokens, repr_layers=[], need_head_weights=False, return_contacts=False
+        self,
+        tokens,
+        positions,
+        repr_layers=[],
+        need_head_weights=False,
+        return_contacts=False,
     ):
         """
         tokens: stringt tensor of shape [batch, Num_sequences, Num_variants]
@@ -161,7 +166,7 @@ class MSATransformer(nn.Module):
 
         x = self.embed_tokens(tokens)
         x += self.embed_positions(
-            tokens.view(batch_size * num_alignments, seqlen)
+            tokens.view(batch_size * num_alignments, seqlen), positions
         ).view(x.size())
         if self.msa_position_embedding is not None:
             if x.size(1) > 1024:
