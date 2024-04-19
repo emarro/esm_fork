@@ -144,7 +144,7 @@ class RowSelfAttention(nn.Module):
             attn_probs = attn_weights.softmax(-1)
             attn_probs = self.dropout_module(attn_probs)
             output = self.compute_attention_update(x, attn_probs)
-            print(f"Output shape {output.size()}, Attn shape {attn_probs}")
+            print(f"Output shape {output.size()}, Attn shape {attn_probs.size()}")
             return output, attn_probs
 
 
