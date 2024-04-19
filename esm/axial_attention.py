@@ -6,6 +6,7 @@
 import math
 import torch
 import torch.nn as nn
+from mamba_ssm import Mamba
 
 
 class RowSelfAttention(nn.Module):
@@ -231,6 +232,7 @@ class ColumnSelfAttention(nn.Module):
             q *= self.scaling
 
             attn_weights = torch.einsum("icnhd,jcnhd->hcnij", q, k)
+            print(f"ColumnSelfAttention weights {attn_weights.size()}")
 
             if self_attn_mask is not None:
                 raise NotImplementedError
