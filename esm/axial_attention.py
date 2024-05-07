@@ -130,9 +130,9 @@ class RowSelfAttention(nn.Module):
         self_attn_padding_mask=None,
     ):
         num_rows, num_cols, batch_size, embed_dim = x.size()
-        print(
-            f"RowSelfAttention rows {num_rows}, cols {num_cols}, batch {batch_size}, d_dim {embed_dim}"
-        )
+        #print(
+        #    f"RowSelfAttention rows {num_rows}, cols {num_cols}, batch {batch_size}, d_dim {embed_dim}"
+        #)
         if (
             num_rows * num_cols > self.max_tokens_per_msa
         ) and not torch.is_grad_enabled():
@@ -145,7 +145,7 @@ class RowSelfAttention(nn.Module):
             attn_probs = attn_weights.softmax(-1)
             attn_probs = self.dropout_module(attn_probs)
             output = self.compute_attention_update(x, attn_probs)
-            print(f"Output shape {output.size()}, Attn shape {attn_probs.size()}")
+            #print(f"Output shape {output.size()}, Attn shape {attn_probs.size()}")
             return output, attn_probs
 
 
@@ -232,7 +232,7 @@ class ColumnSelfAttention(nn.Module):
             q *= self.scaling
 
             attn_weights = torch.einsum("icnhd,jcnhd->hcnij", q, k)
-            print(f"ColumnSelfAttention weights {attn_weights.size()}")
+            #print(f"ColumnSelfAttention weights {attn_weights.size()}")
 
             if self_attn_mask is not None:
                 raise NotImplementedError
@@ -259,9 +259,9 @@ class ColumnSelfAttention(nn.Module):
     ):
         num_rows, num_cols, batch_size, embed_dim = x.size()
 
-        print(
-            f"ColSelfAttention rows {num_rows}, cols {num_cols}, batch {batch_size}, d_dim {embed_dim}"
-        )
+        #print(
+        #    f"ColSelfAttention rows {num_rows}, cols {num_cols}, batch {batch_size}, d_dim {embed_dim}"
+        #)
         # if False and num_rows * num_cols > 2 ** 14 and not torch.is_grad_enabled():
         if (
             num_rows * num_cols
