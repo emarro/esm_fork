@@ -98,6 +98,7 @@ class MSATransformer(nn.Module):
         self.embed_tokens = nn.Embedding(
             self.alphabet_size, self.args.embed_dim, padding_idx=self.padding_idx
         )
+        print(f"Alphabet size: {self.alphabet_size}")
 
         if getattr(
             self.args, "embed_positions_msa", False
@@ -137,6 +138,7 @@ class MSATransformer(nn.Module):
             self.args.embed_dim,
             self.padding_idx,
         )
+        print(f"Num pos: {self.args.max_positions}")
         #self.embed_positions = SinusoidalPositionalEmbedding(
         #        self.args.embed_dim,
         #        self.padding_idx
