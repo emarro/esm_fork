@@ -46,6 +46,35 @@ proteinseq_toks = {
 }
 vcfseq_toks = {"toks": ["0", "1", ".", "-"]}
 
+thousand_genomes_populations = [
+    "YRI",
+    "CEU",
+    "GWD",
+    "ESN",
+    "CHS",
+    "IBS",
+    "PJL",
+    "PUR",
+    "CLM",
+    "BEB",
+    "PEL",
+    "MSL",
+    "STU",
+    "KHV",
+    "ACB",
+    "ITU",
+    "LWK",
+    "GIH",
+    "TSI",
+    "ASW",
+    "CDX",
+    "CHB",
+    "MXL",
+    "GBR",
+    "FIN",
+    "JPT",
+]
+
 RawMSA = Sequence[Tuple[str, str]]
 
 
@@ -195,8 +224,11 @@ class Alphabet(object):
             prepend_bos = True
             append_eos = False
             use_msa = True
-        elif name in ("imputation", "imputation_transformer", "imputation_msa"):
-            standard_toks = vcfseq_toks["toks"]
+        elif "imputation" in name:
+            if ("pop" in name) or ("population" in name):
+                standard_toks = vcfseq_toks["toks"] + thousand_genomes_populations
+            else:
+                standard_toks = vcfseq_toks["toks"]
             prepend_toks = ("<cls>", "<pad>", "<eos>", "<unk>")
             append_toks = ("<mask>",)
             prepend_bos = True
