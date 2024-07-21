@@ -224,7 +224,8 @@ class Alphabet(object):
             prepend_bos = True
             append_eos = False
             use_msa = True
-        elif name in ("imputation", "imputation_transformer", "imputation_msa"):
+        # elif name in ("imputation", "imputation_transformer", "imputation_msa"):
+        elif "imputation" in name:
             if ("pop" in name) or ("population" in name):
                 standard_toks = vcfseq_toks["toks"] + thousand_genomes_populations
             else:
